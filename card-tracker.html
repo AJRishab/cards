@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Card Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --green: #1a4a2e;
+    --green-mid: #245c38;
+    --green-felt: #1e5c35;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --cream: #f5efe0;
+    --red: #c0392b;
+    --dark: #0d2818;
+    --card-bg: #fffdf7;
+    --shadow: rgba(0,0,0,0.45);
+  }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--green);
+    min-height: 100vh;
+    color: var(--cream);
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at top, #2d6b42 0%, #1a4a2e 60%),
+      repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.01) 10px, rgba(255,255,255,0.01) 11px);
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--dark) 0%, #1a3d24 100%);
+    padding: 18px 20px 14px;
+    text-align: center;
+    border-bottom: 2px solid var(--gold);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--gold-light);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .header p {
+    font-size: 10px;
+    color: rgba(201,168,76,0.6);
+    letter-spacing: 2px;
+    margin-top: 3px;
+  }
+
+  /* Tab Nav */
+  .tab-nav {
+    display: flex;
+    background: var(--dark);
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 12px 8px;
+    background: none;
+    border: none;
+    color: rgba(201,168,76,0.5);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+  }
+
+  .tab-btn.active {
+    color: var(--gold-light);
+  }
+
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0; right: 0;
+    height: 2px;
+    background: var(--gold-light);
+  }
+
+  .tab-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--dark);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 9px;
+    margin-left: 5px;
+    font-weight: 500;
+  }
+
+  /* Sections */
+  .section { display: none; padding: 16px 12px; }
+  .section.active { display: block; }
+
+  /* Grid */
+  .suits-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  /* Suit Column */
+  .suit-col {
+    background: rgba(13,40,24,0.6);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+
+  .suit-header {
+    padding: 10px 4px 8px;
+    text-align: center;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    background: rgba(0,0,0,0.3);
+  }
+
+  .suit-symbol {
+    font-size: 24px;
+    line-height: 1;
+    display: block;
+  }
+
+  .suit-name {
+    font-size: 7px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.7);
+    margin-top: 3px;
+    display: block;
+  }
+
+  .suit-count {
+    font-size: 8px;
+    color: rgba(201,168,76,0.5);
+    margin-top: 2px;
+    display: block;
+  }
+
+  /* Card Item */
+  .card-list { padding: 6px 4px; display: flex; flex-direction: column; gap: 3px; }
+
+  .card-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 5px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-item:active { transform: scale(0.95); }
+
+  .card-item:not(.checked):hover { background: rgba(201,168,76,0.08); }
+
+  .card-item.checked {
+    opacity: 0.35;
+  }
+
+  /* Checkbox */
+  .card-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(201,168,76,0.5);
+    background: transparent;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .card-item.checked .card-check {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+
+  .card-item.checked .card-check::after {
+    content: '✓';
+    font-size: 10px;
+    color: var(--dark);
+    font-weight: bold;
+  }
+
+  .card-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cream);
+    flex: 1;
+    text-align: center;
+  }
+
+  .suit-hearts .card-label, .suit-diamonds .card-label { color: #f5b8b8; }
+  .suit-spades .card-label, .suit-clubs .card-label { color: #e8dfc8; }
+
+  /* Selected Section */
+  .selected-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .selected-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--gold-light);
+    letter-spacing: 1px;
+  }
+
+  .clear-btn {
+    background: rgba(192,57,43,0.2);
+    border: 1px solid rgba(192,57,43,0.5);
+    color: #e57373;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  .clear-btn:active { background: rgba(192,57,43,0.4); }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: rgba(201,168,76,0.3);
+  }
+
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+  .empty-state p { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* Selected Cards Grid */
+  .selected-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .selected-suit-group {
+    background: rgba(13,40,24,0.6);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .selected-suit-header {
+    padding: 8px 4px 6px;
+    text-align: center;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    background: rgba(0,0,0,0.2);
+    font-size: 18px;
+  }
+
+  .selected-cards-list { padding: 5px 4px; display: flex; flex-direction: column; gap: 3px; }
+
+  .selected-card-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 6px;
+    background: rgba(201,168,76,0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(201,168,76,0.2);
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .selected-card-label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .selected-hearts .selected-card-label,
+  .selected-diamonds .selected-card-label { color: #f5a0a0; }
+
+  .selected-spades .selected-card-label,
+  .selected-clubs .selected-card-label { color: #e8dfc8; }
+
+  .unselect-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(192,57,43,0.3);
+    border: 1px solid rgba(192,57,43,0.5);
+    color: #e57373;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .no-selected {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 9px;
+    color: rgba(201,168,76,0.25);
+    letter-spacing: 1px;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .stat-chip {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--gold-light);
+    display: block;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(201,168,76,0.5);
+    margin-top: 3px;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>♠ Card Tracker ♥</h1>
+  <p>TRACK YOUR DECK</p>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('unselected')">
+    Unselected <span class="tab-badge" id="unselected-count">52</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('selected')">
+    Selected <span class="tab-badge" id="selected-count">0</span>
+  </button>
+</div>
+
+<!-- UNSELECTED SECTION -->
+<div class="section active" id="section-unselected">
+  <div class="suits-grid">
+
+    <!-- HEARTS -->
+    <div class="suit-col suit-hearts">
+      <div class="suit-header">
+        <span class="suit-symbol">♥</span>
+        <span class="suit-name">Hearts</span>
+        <span class="suit-count" id="hearts-count">13</span>
+      </div>
+      <div class="card-list" id="hearts-list"></div>
+    </div>
+
+    <!-- SPADES -->
+    <div class="suit-col suit-spades">
+      <div class="suit-header">
+        <span class="suit-symbol">♠</span>
+        <span class="suit-name">Spades</span>
+        <span class="suit-count" id="spades-count">13</span>
+      </div>
+      <div class="card-list" id="spades-list"></div>
+    </div>
+
+    <!-- DIAMONDS -->
+    <div class="suit-col suit-diamonds">
+      <div class="suit-header">
+        <span class="suit-symbol">♦</span>
+        <span class="suit-name">Diamnds</span>
+        <span class="suit-count" id="diamonds-count">13</span>
+      </div>
+      <div class="card-list" id="diamonds-list"></div>
+    </div>
+
+    <!-- CLUBS -->
+    <div class="suit-col suit-clubs">
+      <div class="suit-header">
+        <span class="suit-symbol">♣</span>
+        <span class="suit-name">Clubs</span>
+        <span class="suit-count" id="clubs-count">13</span>
+      </div>
+      <div class="card-list" id="clubs-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SELECTED SECTION -->
+<div class="section" id="section-selected">
+
+  <div class="stats-bar">
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-selected">0</span>
+      <span class="stat-label">Selected</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-remaining">52</span>
+      <span class="stat-label">Remaining</span>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-num" id="stat-pct">0%</span>
+      <span class="stat-label">Done</span>
+    </div>
+  </div>
+
+  <div class="selected-header">
+    <span class="selected-title">Selected Cards</span>
+    <button class="clear-btn" onclick="clearAll()">Clear All</button>
+  </div>
+
+  <div id="empty-state" class="empty-state">
+    <span class="empty-icon">🃏</span>
+    <p>No cards selected yet</p>
+  </div>
+
+  <div class="selected-grid" id="selected-grid" style="display:none">
+    <div class="selected-suit-group selected-hearts">
+      <div class="selected-suit-header">♥</div>
+      <div class="selected-cards-list" id="sel-hearts"></div>
+    </div>
+    <div class="selected-suit-group selected-spades">
+      <div class="selected-suit-header">♠</div>
+      <div class="selected-cards-list" id="sel-spades"></div>
+    </div>
+    <div class="selected-suit-group selected-diamonds">
+      <div class="selected-suit-header">♦</div>
+      <div class="selected-cards-list" id="sel-diamonds"></div>
+    </div>
+    <div class="selected-suit-group selected-clubs">
+      <div class="selected-suit-header">♣</div>
+      <div class="selected-cards-list" id="sel-clubs"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const RANKS = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+  const SUITS = ['hearts','spades','diamonds','clubs'];
+
+  // State: track which cards are selected
+  const state = {};
+  SUITS.forEach(s => { state[s] = {}; RANKS.forEach(r => { state[s][r] = false; }); });
+
+  // Build unselected lists
+  function buildLists() {
+    SUITS.forEach(suit => {
+      const list = document.getElementById(suit + '-list');
+      list.innerHTML = '';
+      RANKS.forEach(rank => {
+        const item = document.createElement('div');
+        item.className = 'card-item' + (state[suit][rank] ? ' checked' : '');
+        item.id = `card-${suit}-${rank}`;
+        item.innerHTML = `
+          <div class="card-check"></div>
+          <span class="card-label">${rank}</span>
+        `;
+        item.addEventListener('click', () => toggleCard(suit, rank));
+        list.appendChild(item);
+      });
+    });
+  }
+
+  function toggleCard(suit, rank) {
+    state[suit][rank] = !state[suit][rank];
+    updateUI();
+  }
+
+  function updateUI() {
+    // Update unselected items
+    SUITS.forEach(suit => {
+      let suitRemaining = 0;
+      RANKS.forEach(rank => {
+        const el = document.getElementById(`card-${suit}-${rank}`);
+        if (el) {
+          if (state[suit][rank]) el.classList.add('checked');
+          else { el.classList.remove('checked'); suitRemaining++; }
+        }
+      });
+      document.getElementById(suit + '-count').textContent = suitRemaining;
+    });
+
+    // Count totals
+    let totalSelected = 0;
+    SUITS.forEach(s => RANKS.forEach(r => { if (state[s][r]) totalSelected++; }));
+    const totalRemaining = 52 - totalSelected;
+    const pct = Math.round((totalSelected / 52) * 100);
+
+    document.getElementById('unselected-count').textContent = totalRemaining;
+    document.getElementById('selected-count').textContent = totalSelected;
+    document.getElementById('stat-selected').textContent = totalSelected;
+    document.getElementById('stat-remaining').textContent = totalRemaining;
+    document.getElementById('stat-pct').textContent = pct + '%';
+
+    // Update selected section
+    const grid = document.getElementById('selected-grid');
+    const empty = document.getElementById('empty-state');
+
+    if (totalSelected === 0) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+    } else {
+      grid.style.display = 'grid';
+      empty.style.display = 'none';
+    }
+
+    SUITS.forEach(suit => {
+      const container = document.getElementById('sel-' + suit);
+      const selectedInSuit = RANKS.filter(r => state[suit][r]);
+      if (selectedInSuit.length === 0) {
+        container.innerHTML = '<div class="no-selected">—</div>';
+      } else {
+        container.innerHTML = '';
+        selectedInSuit.forEach(rank => {
+          const pill = document.createElement('div');
+          pill.className = 'selected-card-pill';
+          pill.innerHTML = `
+            <span class="selected-card-label">${rank}</span>
+            <div class="unselect-btn" onclick="toggleCard('${suit}','${rank}')">✕</div>
+          `;
+          container.appendChild(pill);
+        });
+      }
+    });
+  }
+
+  function clearAll() {
+    SUITS.forEach(s => RANKS.forEach(r => { state[s][r] = false; }));
+    updateUI();
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'unselected') || (i === 1 && tab === 'selected'));
+    });
+    document.getElementById('section-unselected').classList.toggle('active', tab === 'unselected');
+    document.getElementById('section-selected').classList.toggle('active', tab === 'selected');
+  }
+
+  // Init
+  buildLists();
+  updateUI();
+</script>
+</body>
+</html>
